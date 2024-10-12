@@ -130,30 +130,9 @@ class _MyHomePageState extends State<MyHomePage> {
         itemBuilder: (context, index) {
           return GestureDetector(
             onTap: () => flipCard(index),
-            child: Card(
-              elevation: 4.0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isFaceUp[index] ? Colors.white : Colors.blue,
-                  image: isFaceUp[index]
-                      ? DecorationImage(
-                          image: AssetImage(shuffledCardImages[index]),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: isFaceUp[index]
-                    ? null
-                    : const Center(
-                        child: Text(
-                          'Back',
-                          style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
-                        ),
-                      ),
-              ),
+            child: FlippableCard(
+              isFaceUp: isFaceUp[index],
+              imagePath: shuffledCardImages[index],
             ),
           );
         },
@@ -162,3 +141,82 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
+class FlippableCard extends StatefulWidget {
+  final bool isFaceUp;
+  final String imagePath;
+
+  const FlippableCard({Key? key, required this.isFaceUp, required this.imagePath}) : super(key: key);
+
+  @override
+  _FlippableCardState createState() => _FlippableCardState();
+}
+
+class _FlippableCardState extends State<FlippableCard> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _animation = Tween<double>(begin: 0, end: 1).animate(_controller);
+  }
+
+  @override
+  void didUpdateWidget(FlippableCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isFaceUp) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.rotationY(_animation.value * 3.14),
+          child: Card(
+            elevation: 4.0,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                image: widget.isFaceUp
+                    ? DecorationImage(
+                        image: AssetImage(widget.imagePath),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: widget.isFaceUp
+                  ? null
+                  : const Center(
+                      child: Text(
+                        'Back',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
