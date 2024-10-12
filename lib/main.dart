@@ -29,6 +29,9 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int matchedPairs = 0;
+  int score = 0; // Score variable
+  late Timer timer;
+  int elapsedTime = 0; // Timer variable
 
   // List of unique image paths for the pairs (4 unique images, each appearing twice)
   final List<String> cardImages = [
@@ -59,23 +62,31 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void resetGame() {
     matchedPairs = 0;
+    score = 0; // Reset score
+    elapsedTime = 0; // Reset timer
     isFaceUp = List.generate(8, (index) => false); // Reset all cards to face-down
     shuffledCardImages = List.from(cardImages); // Use the defined pairs directly
     shuffledCardImages.shuffle(); // Shuffle the images for a new game
+
+    // Start timer
+    timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
+      setState(() {
+        elapsedTime++; // Increment elapsed time every second
+      });
+    });
   }
 
   void flipCard(int index) {
+    if (isFaceUp[index]) return; // Ignore if the card is already face up
+
+    setState(() {
+      isFaceUp[index] = true;
+    });
+
     if (firstSelectedIndex == null) {
-      setState(() {
-        isFaceUp[index] = true;
-        firstSelectedIndex = index;
-      });
+      firstSelectedIndex = index; // First card selected
     } else {
       if (firstSelectedIndex == index) return; // Ignore if the same card is tapped
-
-      setState(() {
-        isFaceUp[index] = true;
-      });
 
       // Check for a match after a brief delay
       Timer(const Duration(seconds: 1), () {
@@ -83,17 +94,21 @@ class _MyHomePageState extends State<MyHomePage> {
           setState(() {
             isFaceUp[firstSelectedIndex!] = false;
             isFaceUp[index] = false;
+            score -= 1; // Deduct points for a mismatch
           });
         } else {
           matchedPairs++;
+          score += 2; // Add points for a match
           // Check for a win condition
           if (matchedPairs == 4) { // Adjust to 4 pairs since we have 4 unique images
+            // Stop the timer
+            timer.cancel();
             // Show a dialog when all pairs are matched
             showDialog(
               context: context,
               builder: (context) => AlertDialog(
                 title: const Text('You Win!'),
-                content: const Text('Congratulations, you matched all the pairs!'),
+                content: Text('Congratulations, you matched all the pairs!\nYour Score: $score\nTime: $elapsedTime seconds'),
                 actions: [
                   TextButton(
                     onPressed: () {
@@ -114,28 +129,50 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
+  void dispose() {
+    timer.cancel(); // Cancel timer when disposing
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Card Matching Game'),
       ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16.0),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4, // A 4x4 grid of cards
-          crossAxisSpacing: 8.0,
-          mainAxisSpacing: 8.0,
-        ),
-        itemCount: 8, // Total number of cards (8 for 4 unique pairs)
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () => flipCard(index),
-            child: FlippableCard(
-              isFaceUp: isFaceUp[index],
-              imagePath: shuffledCardImages[index],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Score: $score', style: const TextStyle(fontSize: 20)),
+                Text('Time: $elapsedTime seconds', style: const TextStyle(fontSize: 20)),
+              ],
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.all(16.0),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4, // A 4x4 grid of cards
+                crossAxisSpacing: 8.0,
+                mainAxisSpacing: 8.0,
+              ),
+              itemCount: 8, // Total number of cards (8 for 4 unique pairs)
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () => flipCard(index),
+                  child: FlippableCard(
+                    isFaceUp: isFaceUp[index],
+                    imagePath: shuffledCardImages[index],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
