@@ -28,23 +28,25 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // List of 8 unique image paths
-  List<String> cardImages = [
-    'assets/smile.png',
-    'assets/smile2.png',
-    'assets/smile3.png',
-    'assets/smile4.png',
-    'assets/smile5.png',
-    'assets/smile6.png',
-    'assets/smile7.png',
-    'assets/smile8.png',
+  int matchedPairs = 0;
+
+  // List of unique image paths for the pairs (4 unique images, each appearing twice)
+  final List<String> cardImages = [
+    'assets/smile.png',   // Image 1
+    'assets/smile.png',   // Image 1 (duplicate)
+    'assets/smile2.png',  // Image 2
+    'assets/smile2.png',  // Image 2 (duplicate)
+    'assets/smile3.png',  // Image 3
+    'assets/smile3.png',  // Image 3 (duplicate)
+    'assets/smile4.png',  // Image 4
+    'assets/smile4.png',  // Image 4 (duplicate)
   ];
 
-  // To hold the shuffled card images (16 entries, 8 pairs)
-  List<String> shuffledCardImages = [];
+  // To hold the shuffled card images
+  late List<String> shuffledCardImages;
 
   // List to keep track of face-up/face-down states for the cards
-  List<bool> isFaceUp = List.generate(16, (index) => false); 
+  late List<bool> isFaceUp;
 
   // Keep track of the first selected card index
   int? firstSelectedIndex;
@@ -52,39 +54,61 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    // Duplicate and shuffle images to create a random 4x4 grid
-    shuffledCardImages = List.from(cardImages)..addAll(cardImages); // Duplicate the image list
-    shuffledCardImages.shuffle(); // Shuffle the images to randomize card positions
-    firstSelectedIndex = null; // Initialize firstSelectedIndex
+    resetGame(); // Initialize game state
   }
 
-  // Function to flip a card when tapped
+  void resetGame() {
+    matchedPairs = 0;
+    isFaceUp = List.generate(8, (index) => false); // Reset all cards to face-down
+    shuffledCardImages = List.from(cardImages); // Use the defined pairs directly
+    shuffledCardImages.shuffle(); // Shuffle the images for a new game
+  }
+
   void flipCard(int index) {
-    // If a card is already selected, don't do anything
     if (firstSelectedIndex == null) {
       setState(() {
-        isFaceUp[index] = true; // Flip the current card
-        firstSelectedIndex = index; // Store the index of the first card
+        isFaceUp[index] = true;
+        firstSelectedIndex = index;
       });
     } else {
-      // If the same card is tapped again, ignore
-      if (firstSelectedIndex == index) return;
+      if (firstSelectedIndex == index) return; // Ignore if the same card is tapped
 
       setState(() {
-        isFaceUp[index] = true; // Flip the current card
+        isFaceUp[index] = true;
       });
 
-      // Check for a match after a delay
+      // Check for a match after a brief delay
       Timer(const Duration(seconds: 1), () {
-        // Check if the images match
         if (shuffledCardImages[firstSelectedIndex!] != shuffledCardImages[index]) {
           setState(() {
-            isFaceUp[firstSelectedIndex!] = false; // Flip the first card back down
-            isFaceUp[index] = false; // Flip the current card back down
+            isFaceUp[firstSelectedIndex!] = false;
+            isFaceUp[index] = false;
           });
+        } else {
+          matchedPairs++;
+          // Check for a win condition
+          if (matchedPairs == 4) { // Adjust to 4 pairs since we have 4 unique images
+            // Show a dialog when all pairs are matched
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('You Win!'),
+                content: const Text('Congratulations, you matched all the pairs!'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      resetGame(); // Reset the game for a new round
+                      setState(() {}); // Update UI after reset
+                    },
+                    child: const Text('Play Again'),
+                  ),
+                ],
+              ),
+            );
+          }
         }
-        // Reset the first selected index
-        firstSelectedIndex = null;
+        firstSelectedIndex = null; // Reset the first selected index
       });
     }
   }
@@ -102,27 +126,27 @@ class _MyHomePageState extends State<MyHomePage> {
           crossAxisSpacing: 8.0,
           mainAxisSpacing: 8.0,
         ),
-        itemCount: 16, // Total number of cards (4x4 grid)
+        itemCount: 8, // Total number of cards (8 for 4 unique pairs)
         itemBuilder: (context, index) {
           return GestureDetector(
-            onTap: () => flipCard(index), // Call the flipCard function on tap
+            onTap: () => flipCard(index),
             child: Card(
               elevation: 4.0,
               child: Container(
                 decoration: BoxDecoration(
-                  color: isFaceUp[index] ? Colors.white : Colors.blue, // Face-up: White, Face-down: Blue
+                  color: isFaceUp[index] ? Colors.white : Colors.blue,
                   image: isFaceUp[index]
                       ? DecorationImage(
-                          image: AssetImage(shuffledCardImages[index]), // Show the front image if face-up
+                          image: AssetImage(shuffledCardImages[index]),
                           fit: BoxFit.cover,
                         )
-                      : null, // Face-down state shows no image
+                      : null,
                 ),
                 child: isFaceUp[index]
-                    ? null // If face-up, show the image only
+                    ? null
                     : const Center(
                         child: Text(
-                          'Back', // Display 'Back' when face-down
+                          'Back',
                           style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -137,3 +161,4 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
