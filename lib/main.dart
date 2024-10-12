@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:async'; // Import Timer class for delay functionality
+import 'dart:async';
 
 void main() {
   runApp(const MyApp());
@@ -11,9 +11,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Card Matching Game',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: const MyHomePage(),
     );
@@ -32,8 +33,9 @@ class _MyHomePageState extends State<MyHomePage> {
   int score = 0; // Score variable
   late Timer timer;
   int elapsedTime = 0; // Timer variable
+  bool gameEnded = false; // To check if the game has ended
+  int bestScore = 0; // Track the best score
 
-  // List of unique image paths for the pairs (4 unique images, each appearing twice)
   final List<String> cardImages = [
     'assets/smile.png',   // Image 1
     'assets/smile.png',   // Image 1 (duplicate)
@@ -45,13 +47,8 @@ class _MyHomePageState extends State<MyHomePage> {
     'assets/smile4.png',  // Image 4 (duplicate)
   ];
 
-  // To hold the shuffled card images
   late List<String> shuffledCardImages;
-
-  // List to keep track of face-up/face-down states for the cards
   late List<bool> isFaceUp;
-
-  // Keep track of the first selected card index
   int? firstSelectedIndex;
 
   @override
@@ -64,6 +61,7 @@ class _MyHomePageState extends State<MyHomePage> {
     matchedPairs = 0;
     score = 0; // Reset score
     elapsedTime = 0; // Reset timer
+    gameEnded = false; // Reset game ended state
     isFaceUp = List.generate(8, (index) => false); // Reset all cards to face-down
     shuffledCardImages = List.from(cardImages); // Use the defined pairs directly
     shuffledCardImages.shuffle(); // Shuffle the images for a new game
@@ -77,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void flipCard(int index) {
-    if (isFaceUp[index]) return; // Ignore if the card is already face up
+    if (isFaceUp[index] || gameEnded) return; // Ignore if the card is already face up or game has ended
 
     setState(() {
       isFaceUp[index] = true;
@@ -99,16 +97,20 @@ class _MyHomePageState extends State<MyHomePage> {
         } else {
           matchedPairs++;
           score += 2; // Add points for a match
+
           // Check for a win condition
           if (matchedPairs == 4) { // Adjust to 4 pairs since we have 4 unique images
             // Stop the timer
             timer.cancel();
+            gameEnded = true; // Set game as ended
+            bestScore = bestScore < score ? score : bestScore; // Update best score
             // Show a dialog when all pairs are matched
             showDialog(
               context: context,
               builder: (context) => AlertDialog(
                 title: const Text('You Win!'),
-                content: Text('Congratulations, you matched all the pairs!\nYour Score: $score\nTime: $elapsedTime seconds'),
+                content: Text(
+                    'Congratulations! You matched all the pairs!\nYour Score: $score\nTime: $elapsedTime seconds\nBest Score: $bestScore'),
                 actions: [
                   TextButton(
                     onPressed: () {
@@ -139,6 +141,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Card Matching Game'),
+        centerTitle: true,
       ),
       body: Column(
         children: [
@@ -147,7 +150,13 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Score: $score', style: const TextStyle(fontSize: 20)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Score: $score', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text('Best Score: $bestScore', style: const TextStyle(fontSize: 16)),
+                  ],
+                ),
                 Text('Time: $elapsedTime seconds', style: const TextStyle(fontSize: 20)),
               ],
             ),
