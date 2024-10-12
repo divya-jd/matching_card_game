@@ -27,12 +27,36 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<bool> isFaceUp = List.generate(16, (index) => false); // Track the state of each card
+  // List of 8 unique image paths
+  List<String> cardImages = [
+    '/Users/joisedivya/card_matching_game/assets/smile.png',
+    '/Users/joisedivya/card_matching_game/assets/smile2.png',
+    '/Users/joisedivya/card_matching_game/assets/smile3.png',
+    '/Users/joisedivya/card_matching_game/assets/smile4.png',
+    '/Users/joisedivya/card_matching_game/assets/smile5.png',
+    '/Users/joisedivya/card_matching_game/assets/smile6.png',
+    '/Users/joisedivya/card_matching_game/assets/smile7.png',
+    '/Users/joisedivya/card_matching_game/assets/smile8.png',
+  ];
 
-  // Function to flip card when tapped
+  // To hold the shuffled card images (16 entries, 8 pairs)
+  List<String> shuffledCardImages = [];
+
+  // List to keep track of face-up/face-down states for the cards
+  List<bool> isFaceUp = List.generate(16, (index) => false); 
+
+  @override
+  void initState() {
+    super.initState();
+    // Duplicate and shuffle images to create a random 4x4 grid
+    shuffledCardImages = List.from(cardImages)..addAll(cardImages); // Duplicate the image list
+    shuffledCardImages.shuffle(); // Shuffle the images to randomize card positions
+  }
+
+  // Function to flip a card when tapped
   void flipCard(int index) {
     setState(() {
-      isFaceUp[index] = !isFaceUp[index];
+      isFaceUp[index] = !isFaceUp[index]; // Toggle card's face-up state
     });
   }
 
@@ -49,25 +73,33 @@ class _MyHomePageState extends State<MyHomePage> {
           crossAxisSpacing: 8.0,
           mainAxisSpacing: 8.0,
         ),
-        itemCount: 16, // Number of cards
+        itemCount: 16, // Total number of cards (4x4 grid)
         itemBuilder: (context, index) {
           return GestureDetector(
             onTap: () => flipCard(index), // Call the flipCard function on tap
             child: Card(
               elevation: 4.0,
               child: Container(
-                color: isFaceUp[index] ? Colors.white : Colors.blue, // Change color based on face-up state
-                child: Center(
-                  child: isFaceUp[index]
-                      ? const Text(
-                          'Front', // Text when card is flipped (face-up)
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                decoration: BoxDecoration(
+                  color: isFaceUp[index] ? Colors.white : Colors.blue, // Face-up: White, Face-down: Blue
+                  image: isFaceUp[index]
+                      ? DecorationImage(
+                          image: AssetImage(shuffledCardImages[index]), // Show the front image if face-up
+                          fit: BoxFit.cover,
                         )
-                      : const Text(
-                          'Back', // Text when card is face-down
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
+                      : null, // Face-down state shows no image
                 ),
+                child: isFaceUp[index]
+                    ? null // If face-up, show the image only
+                    : const Center(
+                        child: Text(
+                          'Back', // Display 'Back' when face-down
+                          style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
+                        ),
+                      ),
               ),
             ),
           );
@@ -75,4 +107,12 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+}
+
+class CardModel {
+  final String frontImage;
+  bool isFaceUp;
+  bool isMatched;
+
+  CardModel({required this.frontImage, this.isFaceUp = false, this.isMatched = false});
 }
